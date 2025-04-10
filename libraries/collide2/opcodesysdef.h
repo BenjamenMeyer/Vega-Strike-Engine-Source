@@ -45,16 +45,11 @@
 # define CS_FORCEINLINE_TEMPLATEMETHOD CS_FORCEINLINE
 #endif
 
-#include "gfx/quaternion.h"
-#include <cstdint>
-#include <gfx/tvector.h>
 #define SMALL_EPSILON .000001
 #define EPSILON .00001
 #define ABS(x) (x>=0?x:-x)
 #define __CS_CSSYSDEFS_H__
 
-#include <cstdlib>
-#include <cstring>
 #include <cassert>
 
 class csObject {
@@ -64,5 +59,5 @@ struct iBase {
 
 #define CS_ASSERT assert
 
-#include "opcodetypes.h"
+#include "collide2/opcodetypes.h"
 #endif //VEGA_STRIKE_ENGINE_CMD_COLLSION2CS_COMPAT_H

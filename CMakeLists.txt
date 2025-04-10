@@ -34,12 +34,18 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.21 FATAL_ERROR)
 
 IF (POLICY CMP0087)
-    cmake_policy(SET CMP0087 NEW)
+    CMAKE_POLICY(SET CMP0087 NEW)
+ENDIF ()
+
+# TODO: this suppresses warnings about CMP0102 caching.
+# We should do something about it instead.
+IF (POLICY CMP0102)
+    CMAKE_POLICY(SET CMP0102 OLD)
 ENDIF ()
 
 IF (POLICY CMP0167)
-    CMAKE_POLICY (SET CMP0167 OLD)
-ENDIF (POLICY CMP0167)
+    CMAKE_POLICY (SET CMP0167 NEW)
+ENDIF ()
 
 # There are a number of custom CMake packages
 # Tell CMake where to find them
@@ -97,10 +103,6 @@ ENDIF ()
 # If a release is missing this value, then version `1` can be assumed.
 SET(VEGASTRIKE_ASSETS_API_VERSION "3")
 
-# TODO: this suppresses warnings about CMP0102 caching.
-# We should do something about it instead.
-CMAKE_POLICY(SET CMP0102 OLD)
-
 PROJECT(Vega_Strike
     VERSION
     "${VEGASTRIKE_VERSION_MAJOR}.${VEGASTRIKE_VERSION_MINOR}.${VEGASTRIKE_VERSION_PATCH}"   #.${VEGASTRIKE_VERSION_TWEAK}   # CMake only allows numeric version components, unfortunately.
@@ -116,6 +118,34 @@ SET(CMAKE_CXX_EXTENSIONS ON)
 SET(CMAKE_C_STANDARD 11)
 SET(CMAKE_C_STANDARD_REQUIRED TRUE)
 SET(CMAKE_C_EXTENSIONS ON)
+
+ADD_COMPILE_DEFINITIONS("NV_CUBE_MAP"
+        "BOOST_PYTHON_NO_PY_SIGNATURES"
+        "BOOST_ALL_DYN_LINK"
+        "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>"
+        "$<$<CXX_COMPILER_ID:MSVC>:__x86_64__>"
+        "$<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>"
+        "$<$<CXX_COMPILER_ID:MSVC>:_CRT_NONSTDC_NO_DEPRECATE>"
+)
+ADD_COMPILE_OPTIONS("$<$<CXX_COMPILER_ID:MSVC>:/FI${Vega_Strike_BINARY_DIR}/engine/config.h>"
+        "$<$<CXX_COMPILER_ID:MSVC>:/wd4244>"
+        "$<$<CXX_COMPILER_ID:MSVC>:/wd4267>"
+        "$<$<CXX_COMPILER_ID:MSVC>:/wd4305>"
+        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/Z7>"
+)
+# for DEBUG remove all optimizations
+ADD_LINK_OPTIONS("$<$<CXX_COMPILER_ID:MSVC>:/DEBUG>")
+ADD_COMPILE_OPTIONS("$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-pipe>"
+        "$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall>"
+        "$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fvisibility=hidden>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Debug>>:-fstandalone-debug>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Debug>>:-O0>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<OR:$<CONFIG:Profiler>,$<CONFIG:RelWithDebInfo>>>:-Og>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>>:-g3>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Profiler>>:-pg>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Profiler>>:-g2>"
+        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Release>>:-O3>"
+)
 
 # On some Ubuntu versions and derivatives, a bug exists whereby enabling
 # PIE compilation (Position Independent Executables) results in the
@@ -185,8 +215,8 @@ ENDIF(NOT POW_FUNCTION_EXISTS AND NOT NEED_LINKING_AGAINST_LIBM)
 #find Zlib
 FIND_PACKAGE(ZLIB REQUIRED)
 IF (ZLIB_FOUND)
-    SET(TST_INCLUDES ${TST_INCLUDES} ${ZLIB_INCLUDE_DIR})
-    SET(TST_LIBS ${TST_LIBS} ${ZLIB_LIBRARIES})
+    LIST(APPEND TST_INCLUDES ${ZLIB_INCLUDE_DIR})
+    LIST(APPEND TST_LIBS ${ZLIB_LIBRARIES})
 ELSE (ZLIB_FOUND)
     MESSAGE(WARNING "For the love of god, no zlib here")
 ENDIF (ZLIB_FOUND)
@@ -194,8 +224,8 @@ ENDIF (ZLIB_FOUND)
 #find Expat
 FIND_PACKAGE(EXPAT REQUIRED)
 IF (EXPAT_FOUND)
-    SET(TST_INCLUDES ${TST_INCLUDES} ${EXPAT_INCLUDE_DIRS})
-    SET(TST_LIBS ${TST_LIBS} ${EXPAT_LIBRARIES})
+    LIST(APPEND TST_INCLUDES ${EXPAT_INCLUDE_DIRS})
+    LIST(APPEND TST_LIBS ${EXPAT_LIBRARIES})
 ELSE (EXPAT_FOUND)
     MESSAGE(WARNING "We can't find expat for XML crap")
 ENDIF (EXPAT_FOUND)
@@ -205,8 +235,8 @@ OPTION(DISABLE_FFMPEG "Disable ffmpeg codecs" ON)
 IF (NOT DISABLE_FFMPEG)
     FIND_PACKAGE(FFMPEG)
     IF (FFMPEG_FOUND)
-        SET(TST_INCLUDES ${TST_INCLUDES} ${FFMPEG_INCLUDE_DIRS})
-        SET(TST_LIBS ${TST_LIBS} ${FFMPEG_LIBRARIES})
+        LIST(APPEND TST_INCLUDES ${FFMPEG_INCLUDE_DIRS})
+        LIST(APPEND TST_LIBS ${FFMPEG_LIBRARIES})
         ADD_DEFINITIONS(${FFMPEG_DEFINITIONS})
         SET(HAVE_FFMPEG 1 )
         MESSAGE(STATUS "FFmpeg found.")
@@ -228,8 +258,8 @@ OPTION(DISABLE_OGRE "Disable Ogre-mesh support in mesh tool" ON)
 IF (NOT DISABLE_OGRE)
     FIND_PACKAGE(OGRE)
     IF (OGRE_FOUND)
-        SET(TST_INCLUDES ${TST_INCLUDES} ${OGRE_INCLUDE_DIR})
-        SET(TST_LIBS ${TST_LIBS} ${OGRE_LIBRARY})
+        LIST(APPEND TST_INCLUDES ${OGRE_INCLUDE_DIR})
+        LIST(APPEND TST_LIBS ${OGRE_LIBRARY})
         ADD_DEFINITIONS(${OGRE_DEFINITIONS})
         SET(HAVE_OGRE 1)
         MESSAGE(STATUS "Found Ogre: ${OGRE_VERSION}")
@@ -240,6 +270,101 @@ ELSE (NOT DISABLE_OGRE)
     MESSAGE(STATUS "Ogre disabled")
 ENDIF (NOT DISABLE_OGRE)
 
+#Find GL
+SET(CMAKE_FIND_FRAMEWORK "FIRST")
+FIND_PACKAGE(OpenGL REQUIRED)
+IF (OPENGL_FOUND AND OPENGL_GLU_FOUND)
+    MESSAGE(STATUS "OpenGL found")
+    SET(CMAKE_FIND_FRAMEWORK "LAST")
+    FIND_FILE(VEGA_GLEXT_H_PATH glext.h PATH_SUFFIXES GL/ OpenGL/)
+    get_filename_component(VEGA_GLEXT_H_DIRECTORY ${VEGA_GLEXT_H_PATH} DIRECTORY)
+    MESSAGE(STATUS "Path to glext.h: ${VEGA_GLEXT_H_PATH}")
+    FIND_FILE(VEGA_GL_H_PATH gl.h PATH_SUFFIXES GL/ OpenGL/)
+    get_filename_component(VEGA_GL_H_DIRECTORY ${VEGA_GL_H_PATH} DIRECTORY)
+    MESSAGE(STATUS "Path to gl.h: ${VEGA_GL_H_PATH}")
+    FIND_FILE(VEGA_GLU_H_PATH glu.h PATH_SUFFIXES GL/ OpenGL/)
+    get_filename_component(VEGA_GLU_H_DIRECTORY ${VEGA_GLU_H_PATH} DIRECTORY)
+    MESSAGE(STATUS "Path to glu.h: ${VEGA_GLU_H_PATH}")
+    LIST(APPEND TST_INCLUDES ${VEGA_GLEXT_H_DIRECTORY} ${VEGA_GL_H_DIRECTORY} ${VEGA_GLU_H_DIRECTORY})
+ELSE (OPENGL_FOUND AND OPENGL_GLU_FOUND)
+    MESSAGE(WARNING "Why you no have GL?")
+ENDIF (OPENGL_FOUND AND OPENGL_GLU_FOUND)
+
+# Workaround two oversights in FindGLUT (when trying to use freeglut on MacOS):
+#
+# 1. Use of OPENGL_LIBRARY_DIR
+#    This was added to FindOpenGL in June 2002, then removed 3 months later. In that time it had
+#    made its way into use within FindGLUT, where (oddly) it was used as a possible
+#    location of GLUT's headers but not its libraries. From here, it was never removed.
+#
+# 2. Missing path component
+#    FindGLUT looks for glut.h in various locations when (on MacOS) it should be looking for
+#    GLUT/glut.h. We use the latter in our headers when building on MacOS, so the include path
+#    FindGLUT returns isn't actually of any use, but if FindGLUT can't find glut.h the build
+#    ends up using Apple's deprecated Framework (which defeats the purpose of using freeglut).
+#
+# If we're not on MacOS and using freeglut this line is not required, but as OPENGL_LIBRARY_DIR
+# is not used by anything else the following does no harm either.
+SET(OPENGL_LIBRARY_DIR "${OPENGL_INCLUDE_DIR}/GLUT")
+
+#Find GLUT
+SET(CMAKE_FIND_FRAMEWORK "FIRST")
+FIND_PACKAGE(GLUT REQUIRED)
+IF (GLUT_FOUND)
+    MESSAGE(STATUS "GLUT found : ${GLUT_LIBRARIES}")
+    SET(CMAKE_FIND_FRAMEWORK "LAST")
+    FIND_FILE(VEGA_GLUT_H_PATH glut.h PATH_SUFFIXES GL/ GLUT/)
+    get_filename_component(VEGA_GLUT_H_DIRECTORY ${VEGA_GLUT_H_PATH} DIRECTORY)
+    MESSAGE(STATUS "Path to glut.h: ${VEGA_GLUT_H_PATH}")
+    MESSAGE(STATUS "glut.h directory: ${VEGA_GLUT_H_DIRECTORY}")
+    LIST(APPEND TST_INCLUDES ${VEGA_GLUT_H_DIRECTORY})
+    LIST(APPEND TST_LIBS ${GLUT_LIBRARIES})
+ELSE (GLUT_FOUND)
+    MESSAGE(WARNING "I can't build this, missing GLUT")
+ENDIF (GLUT_FOUND)
+
+UNSET(OPENGL_LIBRARY_DIR)
+SET(CMAKE_FIND_FRAMEWORK "LAST")
+
+# Detect available Linux Distros that can be built for
+# 2021-09-18 stephengtuggy - This needs to happen before the boost_python detection logic,
+# so that we can handle the special cases for Xenial and stretch
+FIND_PACKAGE(LinuxDistro REQUIRED)
+
+SET(PythonInstalledVia "" CACHE STRING "How Python was installed, such as via Homebrew or MacPorts")
+
+IF (PythonInstalledVia STREQUAL "Homebrew")
+    FIND_PACKAGE(Python3 3.13.1 EXACT REQUIRED COMPONENTS Development Interpreter)
+ELSEIF (PythonInstalledVia STREQUAL "MacPorts")
+    FIND_PACKAGE(Python3 3.12.8 EXACT REQUIRED COMPONENTS Development Interpreter)
+ELSE ()
+    FIND_PACKAGE(Python3 3.7...<3.14 REQUIRED COMPONENTS Development Interpreter)
+ENDIF ()
+
+MESSAGE(STATUS "Python library : ${Python3_LIBRARIES} (${Python3_VERSION})")
+MESSAGE(STATUS "Python include dir : ${Python3_INCLUDE_DIRS}")
+IF (Python3_FOUND)
+    LIST(APPEND TST_LIBS ${Python3_LIBRARIES})
+    SET(HAVE_PYTHON 1)
+    SET(TMP_Python_SITELIB ${Python3_SITELIB})
+    STRING(REGEX REPLACE "\\\\" "/" TMP_Python_SITELIB ${TMP_Python_SITELIB})
+    MESSAGE("TMP_Python_SITELIB = ${TMP_Python_SITELIB}")
+    add_compile_definitions(Python_SITELIB=${TMP_Python_SITELIB})
+ELSE (Python3_FOUND)
+    MESSAGE(FATAL_ERROR "Can't find python")
+ENDIF (Python3_FOUND)
+
+# Find Boost with boost_python library
+# Note: we now use Cmake 3.21 and Boost 1.75.
+MESSAGE(STATUS "From now on, always using System Boost (ver. 1.75 or higher)")
+SET(BOOST_PYTHON_COMPONENT "python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
+FIND_PACKAGE(Boost COMPONENTS ${BOOST_PYTHON_COMPONENT} json log log_setup date_time system filesystem thread chrono atomic program_options REQUIRED)
+MESSAGE(STATUS "Found System Boost version ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+SET(BOOST_PYTHON_NO_PY_SIGNATURES 1)
+
+LIST(APPEND TST_INCLUDES ${Python3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+MESSAGE("** Boost_LIBRARIES: ${Boost_LIBRARIES}")
+LIST(APPEND TST_LIBS ${Boost_LIBRARIES})
 
 # Set the default build type
 IF (NOT CMAKE_BUILD_TYPE)

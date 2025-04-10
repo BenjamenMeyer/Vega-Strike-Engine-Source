@@ -30,7 +30,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Vega Strike. If not, see <https://www.gnu.org/licenses/>.
 
-MESSAGE("PROCESSING DIRECTORY: ${CMAKE_CURRENT_SOURCE_DIR}")
+MESSAGE(STATUS "PROCESSING DIRECTORY: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 SET(X_VCPKG_APPLOCAL_DEPS_INSTALL ON)
 
@@ -41,33 +41,6 @@ CONFIGURE_FILE(src/version.h.in ${Vega_Strike_BINARY_DIR}/setup/src/include/vers
 SET(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 SET(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
 INCLUDE(InstallRequiredSystemLibraries)
-
-LIST(APPEND
-    VS_INCLUDE_DIRS
-    # VS engine headers
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/cmd
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/components
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/damage
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/resource
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/python/base_computer
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/python/config
-    # Library Headers
-    ${CMAKE_SOURCE_DIR}/libraries/collide2
-    # CMake Artifacts
-    ${Vega_Strike_BINARY_DIR}
-    ${Vega_Strike_BINARY_DIR}/src
-    # Dependencies
-    ${TST_INCLUDES}
-)
-IF (UNIX)
-    LIST(APPEND
-        VS_INCLUDE_DIRS
-        /usr/include/harfbuzz/
-    )
-ENDIF (UNIX)
-MESSAGE("VS INCLUDE DIRS: ${VS_INCLUDE_DIRS}")
 
 # The source files used to be listed here...
 
@@ -101,141 +74,16 @@ IF (DATADIR)
     SET(DEFINES "${DEFINES} -DDATA_DIR='\"${DATADIR}\"'")
 ENDIF (DATADIR)
 
-ADD_COMPILE_DEFINITIONS("NV_CUBE_MAP"
-        "BOOST_PYTHON_NO_PY_SIGNATURES"
-        "BOOST_ALL_DYN_LINK"
-        "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>"
-        "$<$<CXX_COMPILER_ID:MSVC>:__x86_64__>"
-        "$<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>"
-        "$<$<CXX_COMPILER_ID:MSVC>:_CRT_NONSTDC_NO_DEPRECATE>"
-        )
-ADD_COMPILE_OPTIONS("$<$<CXX_COMPILER_ID:MSVC>:/FI${Vega_Strike_BINARY_DIR}/engine/config.h>"
-        "$<$<CXX_COMPILER_ID:MSVC>:/wd4244>"
-        "$<$<CXX_COMPILER_ID:MSVC>:/wd4267>"
-        "$<$<CXX_COMPILER_ID:MSVC>:/wd4305>"
-        "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/Z7>"
-        )
-# for DEBUG remove all optimizations
-ADD_LINK_OPTIONS("$<$<CXX_COMPILER_ID:MSVC>:/DEBUG>")
-ADD_COMPILE_OPTIONS("$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-pipe>"
-        "$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall>"
-        "$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fvisibility=hidden>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Debug>>:-fstandalone-debug>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Debug>>:-O0>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<OR:$<CONFIG:Profiler>,$<CONFIG:RelWithDebInfo>>>:-Og>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>>:-g3>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Profiler>>:-pg>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Profiler>>:-g2>"
-        "$<$<AND:$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<CONFIG:Release>>:-O3>"
-        )
-
-# Let cmake find our in-tree modules
-
-# Detect available Linux Distros that can be built for
-# 2021-09-18 stephengtuggy - This needs to happen before the boost_python detection logic,
-# so that we can handle the special cases for Xenial and stretch
-FIND_PACKAGE(LinuxDistro REQUIRED)
-
-SET(PythonInstalledVia "" CACHE STRING "How Python was installed, such as via Homebrew or MacPorts")
-
-IF (PythonInstalledVia STREQUAL "Homebrew")
-    FIND_PACKAGE(Python3 3.13.1 EXACT REQUIRED COMPONENTS Development Interpreter)
-ELSEIF (PythonInstalledVia STREQUAL "MacPorts")
-    FIND_PACKAGE(Python3 3.12.8 EXACT REQUIRED COMPONENTS Development Interpreter)
-ELSE ()
-    FIND_PACKAGE(Python3 3.7...<3.14 REQUIRED COMPONENTS Development Interpreter)
-ENDIF ()
-
-MESSAGE(STATUS "Python library : ${Python3_LIBRARIES} (${Python3_VERSION})")
-MESSAGE(STATUS "Python include dir : ${Python3_INCLUDE_DIRS}")
-IF (Python3_FOUND)
-    SET(VSE_TST_INCLUDES ${TST_INCLUDES} ${Python3_INCLUDE_DIRS})
-    SET(VSE_TST_LIBS ${TST_LIBS} ${Python3_LIBRARIES})
-    SET(HAVE_PYTHON 1)
-    SET(TMP_Python_SITELIB ${Python3_SITELIB})
-    STRING(REGEX REPLACE "\\\\" "/" TMP_Python_SITELIB ${TMP_Python_SITELIB})
-    MESSAGE("TMP_Python_SITELIB = ${TMP_Python_SITELIB}")
-    add_compile_definitions(Python_SITELIB=${TMP_Python_SITELIB})
-ELSE (Python3_FOUND)
-    MESSAGE(FATAL_ERROR "Can't find python")
-ENDIF (Python3_FOUND)
-
-# Find Boost with boost_python library
-# Note: we now use Cmake 3.21 and Boost 1.75.
-MESSAGE(STATUS "From now on, always using System Boost (ver. 1.75 or higher)")
-SET(BOOST_PYTHON_COMPONENT "python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
-FIND_PACKAGE(Boost COMPONENTS ${BOOST_PYTHON_COMPONENT} json log log_setup date_time system filesystem thread chrono atomic program_options REQUIRED)
-MESSAGE(STATUS "Found System Boost version ${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
-SET(BOOST_PYTHON_NO_PY_SIGNATURES 1)
-
-SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${Python3_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
-MESSAGE("** Boost_LIBRARIES: ${Boost_LIBRARIES}")
-SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${Boost_LIBRARIES})
-INCLUDE_DIRECTORIES(${VSE_TST_INCLUDES})
-
 IF (NOT DISABLE_CLIENT) ##########
-
-    #Find GL
-    SET(CMAKE_FIND_FRAMEWORK "FIRST")
-    FIND_PACKAGE(OpenGL REQUIRED)
-    IF (OPENGL_FOUND AND OPENGL_GLU_FOUND)
-        MESSAGE(STATUS "OpenGL found")
-        SET(CMAKE_FIND_FRAMEWORK "LAST")
-        FIND_FILE(VEGA_GLEXT_H_PATH glext.h PATH_SUFFIXES GL/ OpenGL/)
-        get_filename_component(VEGA_GLEXT_H_DIRECTORY ${VEGA_GLEXT_H_PATH} DIRECTORY)
-        MESSAGE(STATUS "Path to glext.h: ${VEGA_GLEXT_H_PATH}")
-        FIND_FILE(VEGA_GL_H_PATH gl.h PATH_SUFFIXES GL/ OpenGL/)
-        get_filename_component(VEGA_GL_H_DIRECTORY ${VEGA_GL_H_PATH} DIRECTORY)
-        MESSAGE(STATUS "Path to gl.h: ${VEGA_GL_H_PATH}")
-        FIND_FILE(VEGA_GLU_H_PATH glu.h PATH_SUFFIXES GL/ OpenGL/)
-        get_filename_component(VEGA_GLU_H_DIRECTORY ${VEGA_GLU_H_PATH} DIRECTORY)
-        MESSAGE(STATUS "Path to glu.h: ${VEGA_GLU_H_PATH}")
-        SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${VEGA_GLEXT_H_DIRECTORY} ${VEGA_GL_H_DIRECTORY} ${VEGA_GLU_H_DIRECTORY})
-    ELSE (OPENGL_FOUND AND OPENGL_GLU_FOUND)
-        MESSAGE(WARNING "Why you no have GL?")
-    ENDIF (OPENGL_FOUND AND OPENGL_GLU_FOUND)
-
-    # Workaround two oversights in FindGLUT (when trying to use freeglut on MacOS):
-    #
-    # 1. Use of OPENGL_LIBRARY_DIR
-    #    This was added to FindOpenGL in June 2002, then removed 3 months later. In that time it had
-    #    made its way into use within FindGLUT, where (oddly) it was used as a possible
-    #    location of GLUT's headers but not its libraries. From here, it was never removed.
-    #
-    # 2. Missing path component
-    #    FindGLUT looks for glut.h in various locations when (on MacOS) it should be looking for
-    #    GLUT/glut.h. We use the latter in our headers when building on MacOS, so the include path
-    #    FindGLUT returns isn't actually of any use, but if FindGLUT can't find glut.h the build
-    #    ends up using Apple's deprecated Framework (which defeats the purpose of using freeglut).
-    #
-    # If we're not on MacOS and using freeglut this line is not required, but as OPENGL_LIBRARY_DIR
-    # is not used by anything else the following does no harm either.
-    SET(OPENGL_LIBRARY_DIR "${OPENGL_INCLUDE_DIR}/GLUT")
-
-    #Find GLUT
-    SET(CMAKE_FIND_FRAMEWORK "FIRST")
-    FIND_PACKAGE(GLUT REQUIRED)
-    IF (GLUT_FOUND)
-        MESSAGE(STATUS "GLUT found : ${GLUT_LIBRARIES}")
-        SET(CMAKE_FIND_FRAMEWORK "LAST")
-        FIND_FILE(VEGA_GLUT_H_PATH glut.h PATH_SUFFIXES GL/ GLUT/)
-        get_filename_component(VEGA_GLUT_H_DIRECTORY ${VEGA_GLUT_H_PATH} DIRECTORY)
-        MESSAGE(STATUS "Path to glut.h: ${VEGA_GLUT_H_PATH}")
-        SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${VEGA_GLUT_H_DIRECTORY} ${GLUT_INCLUDE_DIR})
-        SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${GLUT_LIBRARIES})
-    ELSE (GLUT_FOUND)
-        MESSAGE(WARNING "I can't build this, missing GLUT")
-    ENDIF (GLUT_FOUND)
-
-    UNSET(OPENGL_LIBRARY_DIR)
-    SET(CMAKE_FIND_FRAMEWORK "LAST")
+    SET(VSE_TST_LIBS ${TST_LIBS})
+    SET(VSE_TST_INCLUDES ${TST_INCLUDES})
 
     #Find OpenAL
     FIND_PACKAGE(OpenAL REQUIRED)
     IF (OPENAL_FOUND)
         MESSAGE(STATUS "Found OpenAL")
-        SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${OPENAL_INCLUDE_DIR})
-        SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${OPENAL_LIBRARY})
+        LIST(APPEND VSE_TST_INCLUDES ${OPENAL_INCLUDE_DIR})
+        LIST(APPEND VSE_TST_LIBS ${OPENAL_LIBRARY})
         SET(HAVE_AL 1)
     ELSE (OPENAL_FOUND)
         MESSAGE(WARNING "We aint got no sound")
@@ -245,8 +93,8 @@ IF (NOT DISABLE_CLIENT) ##########
         #Find SDL
         FIND_PACKAGE(SDL2)
         IF (SDL2_FOUND)
-            SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${SDL2_INCLUDE_DIRS})
-            SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${SDL2_LIBRARIES})
+            LIST(APPEND VSE_TST_INCLUDES ${SDL2_INCLUDE_DIRS})
+            LIST(APPEND VSE_TST_LIBS ${SDL2_LIBRARIES})
             MESSAGE(STATUS "SDL2 Found")
             SET(HAVE_SDL 1)
             SET(SDL_WINDOWING 1)
@@ -258,8 +106,8 @@ IF (NOT DISABLE_CLIENT) ##########
     #find Vorbis
     FIND_PACKAGE(Vorbis REQUIRED)
     IF (Vorbis_FOUND)
-        SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${Vorbis_INCLUDE_DIRS})
-        SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${Vorbis_LIBRARIES})
+        LIST(APPEND VSE_TST_INCLUDES ${Vorbis_INCLUDE_DIRS})
+        LIST(APPEND VSE_TST_LIBS ${Vorbis_LIBRARIES})
         SET(HAVE_OGG 1)
     ELSE (Vorbis_FOUND)
         MESSAGE(WARNING "Can't find Vorbis libs")
@@ -268,8 +116,8 @@ IF (NOT DISABLE_CLIENT) ##########
     #Find JPEG
     FIND_PACKAGE(JPEG REQUIRED)
     IF (JPEG_FOUND)
-        SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${JPEG_INCLUDE_DIR})
-        SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${JPEG_LIBRARIES})
+        LIST(APPEND VSE_TST_INCLUDES ${JPEG_INCLUDE_DIR})
+        LIST(APPEND VSE_TST_LIBS ${JPEG_LIBRARIES})
     ELSE (JPEG_FOUND)
         MESSAGE(WARNING "How are we gonna open jpegs?")
     ENDIF (JPEG_FOUND)
@@ -277,13 +125,18 @@ IF (NOT DISABLE_CLIENT) ##########
     #Find PNG
     FIND_PACKAGE(PNG REQUIRED)
     IF (PNG_FOUND)
-        SET(VSE_TST_INCLUDES ${VSE_TST_INCLUDES} ${PNG_INCLUDE_DIRS})
-        SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${PNG_LIBRARIES})
+        LIST(APPEND VSE_TST_INCLUDES ${PNG_INCLUDE_DIRS})
+        LIST(APPEND VSE_TST_LIBS ${PNG_LIBRARIES})
     ELSE (PNG_FOUND)
         MESSAGE(WARNING "Can't find PNG lib")
     ENDIF (PNG_FOUND)
 
 ENDIF(NOT DISABLE_CLIENT) ##########
+
+IF (UNIX)
+    LIST(APPEND VSE_TST_INCLUDES ${CMAKE_PREFIX_PATH}/harfbuzz)
+ENDIF ()
+
 IF (NOT BEOS)
     FIND_LIBRARY(UTIL_LIB util)
 ELSEIF (WIN32)
@@ -293,7 +146,7 @@ ELSE (NOT BEOS)
 ENDIF (NOT BEOS)
 
 IF (NOT WIN32)
-    SET(VSE_TST_LIBS ${VSE_TST_LIBS} ${UTIL_LIB})
+    LIST(APPEND VSE_TST_LIBS ${UTIL_LIB})
 ENDIF (NOT WIN32)
 
 # Still need to add CEGUI and OGRE find packages
@@ -354,8 +207,6 @@ CONFIGURE_FILE(cmake-config.h.in config.h)
 
 #end config.h generation
 
-INCLUDE_DIRECTORIES(${VSE_TST_INCLUDES})
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 ADD_COMPILE_OPTIONS("$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-include>"
                     "$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:${Vega_Strike_BINARY_DIR}/engine/config.h>")
 ADD_LINK_OPTIONS("$<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Bsymbolic>")
@@ -504,51 +355,6 @@ SET(LIBAI_SOURCES
     src/cmd/ai/flykeyboard_generic.cpp
 )
 
-SET(LIBCMD_SOURCES
-    src/cmd/alphacurve.cpp
-    src/cmd/carrier.cpp
-    src/cmd/collection.cpp
-    src/cmd/collide_map.cpp
-    src/cmd/collide.cpp
-    src/cmd/container.cpp
-    src/cmd/csv.cpp
-    src/cmd/mount.cpp
-    src/cmd/armed.cpp
-    src/cmd/audible.cpp
-    src/cmd/jump_capable.cpp
-    src/cmd/role_bitmask.cpp
-    src/cmd/unit_collide.cpp
-    src/cmd/unit_const_cache.cpp
-    src/cmd/unit_csv.cpp
-    src/cmd/unit_csv_factory.cpp
-    src/cmd/unit_json_factory.cpp
-    src/cmd/unit_optimize_factory.cpp
-    src/cmd/unit_functions_generic.cpp
-    src/cmd/unit_generic.cpp
-    src/cmd/upgradeable_unit.cpp
-    src/cmd/fg_util.cpp
-    src/cmd/unit_util_generic.cpp
-    src/cmd/unit_xml.cpp
-    src/cmd/engineVersion.cpp
-
-    src/cmd/collision.cpp
-    src/cmd/damageable.cpp
-    src/cmd/drawable.cpp
-    src/cmd/movable.cpp
-    src/cmd/computer.cpp
-
-    src/cmd/intelligent.cpp
-    src/cmd/energetic.cpp
-
-    src/cmd/planetary_orbit.cpp
-
-    src/cmd/weapon_factory.cpp
-    src/cmd/weapon_info.cpp
-    src/cmd/mount_size.cpp
-    src/cmd/weapon_type.cpp
-    src/vega_py_run.cpp
-)
-
 SET(LIBCMDSERVER_SOURCES
     src/cmd/atmosphere_server.cpp
     src/cmd/base_util_server.cpp
@@ -561,22 +367,6 @@ SET(LIBCMDSERVER_SOURCES
     src/cmd/pilot_server.cpp
     src/cmd/images_server.cpp
     src/cmd/faction_xml_server.cpp
-)
-
-SET(LIBGFXGENERIC_SOURCES
-    src/gfx/texture_manager.cpp
-    src/gfx/boltdrawmanager.cpp
-    src/gfx/cockpit_generic.cpp
-    src/gfx/lerp.cpp
-    src/gfx/matrix.cpp
-    src/gfx/mesh_bxm.cpp
-    src/gfx/mesh_poly.cpp
-    src/gfx/mesh_xml.cpp
-    src/gfx/mesh.cpp
-    src/gfx/quaternion.cpp
-    src/gfx/soundcontainer_generic.cpp
-    src/gfx/sphere_generic.cpp
-    src/gfx/tvector.cpp
 )
 
 SET(LIBGFXCLIENT_SOURCES
@@ -666,35 +456,6 @@ SET(LIBGFXSERVER_SOURCES
     src/gfx/mesh_bin_server.cpp
 )
 
-SET(LIBROOTGENERIC_SOURCES
-    src/atmospheric_fog_mesh.cpp
-    src/configxml.cpp
-    src/easydom.cpp
-    src/macosx_math.cpp
-    src/faction_generic.cpp
-    src/faction_util_generic.cpp
-    src/galaxy.cpp
-    src/galaxy_gen.cpp
-    src/galaxy_xml.cpp
-    src/galaxy_utils.cpp
-    src/lin_time.cpp
-    src/load_mission.cpp
-    src/pk3.cpp
-    src/posh.cpp
-    src/savegame.cpp
-    src/system_factory.cpp
-    src/star_system_xml.cpp
-    src/stardate.cpp
-    src/universe_globals.cpp
-    src/universe_util_generic.cpp
-    src/vs_globals.cpp
-    src/vsfilesystem.cpp
-    src/xml_serializer.cpp
-    src/xml_support.cpp
-    src/XMLDocument.cpp
-    src/options.cpp
-)
-
 SET(LIBROOTCLIENT_SOURCES
     src/cg_global.cpp
     src/command.cpp
@@ -766,10 +527,13 @@ SET(LIBAUDIO_SOURCES
 ADD_LIBRARY(vegastrike_python SHARED
     ${LIBPYTHON}
 )
+# Enable PIE for this library in a cross-platform-compatible way
+set_property(TARGET vegastrike_python PROPERTY POSITION_INDEPENDENT_CODE TRUE)
+SET_PROPERTY(TARGET vegastrike_python PROPERTY CXX_STANDARD 14)
+SET_PROPERTY(TARGET vegastrike_python PROPERTY CXX_STANDARD_REQUIRED TRUE)
+SET_PROPERTY(TARGET vegastrike_python PROPERTY CXX_EXTENSIONS ON)
+TARGET_INCLUDE_DIRECTORIES(vegastrike_python SYSTEM PRIVATE ${VSE_TST_INCLUDES})
 
-TARGET_COMPILE_OPTIONS(
-    vegastrike_python PRIVATE -fPIC
-)
 
 TARGET_LINK_LIBRARIES(
     vegastrike_python
@@ -780,7 +544,7 @@ TARGET_LINK_LIBRARIES(
 # Name must be witout the lib prefix
 SET_TARGET_PROPERTIES(vegastrike_python PROPERTIES PREFIX "")
 
-ADD_LIBRARY(vegastrike-engine_com
+ADD_LIBRARY(vegastrike-engine_com OBJECT
     ${VEGA_GL_H_PATH}
     ${VEGA_GLU_H_PATH}
     ${VEGA_GLEXT_H_PATH}
@@ -792,20 +556,17 @@ ADD_LIBRARY(vegastrike-engine_com
     ${LIBRESOURCE}
     ${LIBCOMPONENT}
     ${LIBAI_SOURCES}
-    ${LIBCMD_SOURCES}
     ${LIBNET_SOURCES}
     ${LIBPYTHON_SOURCES}
-    ${LIBROOTGENERIC_SOURCES}
     ${LIBSCRIPT_SOURCES}
-    ${LIBGFXGENERIC_SOURCES}
 )
-TARGET_INCLUDE_DIRECTORIES(vegastrike-engine_com PUBLIC ${VS_INCLUDE_DIRS})
 
 #TARGET_COMPILE_FEATURES(vegastrike-engine_com PUBLIC cxx_std_11)
+SET_PROPERTY(TARGET vegastrike-engine_com PROPERTY CXX_STANDARD 14)
+SET_PROPERTY(TARGET vegastrike-engine_com PROPERTY CXX_STANDARD_REQUIRED TRUE)
+SET_PROPERTY(TARGET vegastrike-engine_com PROPERTY CXX_EXTENSIONS ON)
 set_property(TARGET vegastrike-engine_com PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-IF (NEED_LINKING_AGAINST_LIBM)
-    TARGET_LINK_LIBRARIES(vegastrike-engine_com m)
-ENDIF()
+
 TARGET_COMPILE_DEFINITIONS(vegastrike-engine_com PUBLIC "BOOST_ALL_DYN_LINK" "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>")
 IF (WIN32)
     TARGET_COMPILE_DEFINITIONS(vegastrike-engine_com PUBLIC BOOST_USE_WINAPI_VERSION=0x0A00)
@@ -813,6 +574,33 @@ IF (WIN32)
     TARGET_COMPILE_DEFINITIONS(vegastrike-engine_com PUBLIC WINVER=0x0A00)
     TARGET_COMPILE_DEFINITIONS(vegastrike-engine_com PUBLIC "$<$<CONFIG:Debug>:Py_DEBUG>")
 ENDIF()
+
+TARGET_INCLUDE_DIRECTORIES(vegastrike-engine_com SYSTEM PRIVATE ${VSE_TST_INCLUDES})
+TARGET_INCLUDE_DIRECTORIES(vegastrike-engine_com PRIVATE
+        # VS engine headers
+        ${Vega_Strike_SOURCE_DIR}
+        ${Vega_Strike_SOURCE_DIR}/engine
+        ${Vega_Strike_SOURCE_DIR}/engine/src
+        # Library Headers
+        ${Vega_Strike_SOURCE_DIR}/libraries
+        # CMake Artifacts
+        ${Vega_Strike_BINARY_DIR}
+        ${Vega_Strike_BINARY_DIR}/src
+        ${Vega_Strike_BINARY_DIR}/engine
+        ${Vega_Strike_BINARY_DIR}/engine/src
+)
+
+IF (NEED_LINKING_AGAINST_LIBM)
+    TARGET_LINK_LIBRARIES(vegastrike-engine_com PRIVATE m)
+ENDIF()
+TARGET_LINK_LIBRARIES(vegastrike-engine_com PRIVATE
+        OpenGL::GL
+        OpenGL::GLU
+        GLUT::GLUT
+        ${VSE_TST_LIBS}
+        ${Boost_LIBRARIES}
+        ${Python3_LIBRARIES}
+)
 
 SET(VEGASTRIKE_SOURCES
     ${VEGA_GL_H_PATH}
@@ -888,16 +676,14 @@ SET(VEGASTRIKE_SOURCES
     src/python/briefing_wrapper.cpp
 )
 
-SET(VSE_TST_LIBS vegastrike-engine_com vegastrike-OPcollide ${VSE_TST_LIBS})
-
 IF (NOT DISABLE_CLIENT)
     ADD_EXECUTABLE(vegastrike-engine WIN32 MACOSX_BUNDLE ${VEGASTRIKE_SOURCES})
-    TARGET_INCLUDE_DIRECTORIES(vegastrike-engine PUBLIC ${VS_INCLUDE_DIRS})
 
-    #TARGET_COMPILE_FEATURES(vegastrike-engine PUBLIC cxx_std_11)
-    IF (NEED_LINKING_AGAINST_LIBM)
-        TARGET_LINK_LIBRARIES(vegastrike-engine m)
-    ENDIF()
+    #    TARGET_COMPILE_FEATURES(vegastrike-engine PUBLIC cxx_std_14)
+    SET_PROPERTY(TARGET vegastrike-engine PROPERTY CXX_STANDARD 14)
+    SET_PROPERTY(TARGET vegastrike-engine PROPERTY CXX_STANDARD_REQUIRED TRUE)
+    SET_PROPERTY(TARGET vegastrike-engine PROPERTY CXX_EXTENSIONS ON)
+
     TARGET_COMPILE_DEFINITIONS(vegastrike-engine PUBLIC "BOOST_ALL_DYN_LINK" "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>")
     IF (WIN32)
         TARGET_COMPILE_DEFINITIONS(vegastrike-engine PUBLIC BOOST_USE_WINAPI_VERSION=0x0A00)
@@ -906,14 +692,39 @@ IF (NOT DISABLE_CLIENT)
         TARGET_COMPILE_DEFINITIONS(vegastrike-engine PUBLIC "$<$<CONFIG:Debug>:Py_DEBUG>")
     ENDIF()
 
-    #ADD_DEPENDENCIES(vegastrike-engine OpenGL::GL OpenGL::GLU)
+    TARGET_INCLUDE_DIRECTORIES(vegastrike-engine SYSTEM PRIVATE ${VSE_TST_INCLUDES})
+    TARGET_INCLUDE_DIRECTORIES(vegastrike-engine PRIVATE
+            # VS engine headers
+            ${Vega_Strike_SOURCE_DIR}
+            ${Vega_Strike_SOURCE_DIR}/engine
+            ${Vega_Strike_SOURCE_DIR}/engine/src
+            # Library Headers
+            ${Vega_Strike_SOURCE_DIR}/libraries
+            # CMake Artifacts
+            ${Vega_Strike_BINARY_DIR}
+            ${Vega_Strike_BINARY_DIR}/src
+            ${Vega_Strike_BINARY_DIR}/engine
+            ${Vega_Strike_BINARY_DIR}/engine/src
+    )
 
-    TARGET_LINK_LIBRARIES(vegastrike-engine OpenGL::GL OpenGL::GLU ${VSE_TST_LIBS})
-    #IF (MSVC)
-        SET_TARGET_PROPERTIES(vegastrike-engine PROPERTIES LINK_FLAGS "${TST_LFLAGS}")
-    #ELSE (MSVC)
-    #    SET_TARGET_PROPERTIES(vegastrike-engine PROPERTIES LINK_FLAGS "-L/usr/lib -L/usr/local/lib ${TST_LFLAGS}")
-    #ENDIF (MSVC)
+    IF (NEED_LINKING_AGAINST_LIBM)
+        TARGET_LINK_LIBRARIES(vegastrike-engine m)
+    ENDIF()
+
+    TARGET_LINK_LIBRARIES(vegastrike-engine
+            OpenGL::GL
+            OpenGL::GLU
+            GLUT::GLUT
+            ${VSE_TST_LIBS}
+            ${Boost_LIBRARIES}
+            ${Python3_LIBRARIES}
+            $<TARGET_OBJECTS:vegastrike-engine_com>
+            vegastrike_gfx_generic
+            vegastrike_root_generic
+            vegastrike_cmd
+            vegastrike-OPcollide
+    )
+    SET_TARGET_PROPERTIES(vegastrike-engine PROPERTIES LINK_FLAGS "${TST_LFLAGS}")
     SET_TARGET_PROPERTIES(vegastrike-engine PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 ENDIF (NOT DISABLE_CLIENT)
 
@@ -1358,21 +1169,54 @@ IF (USE_GTEST)
         src/components/tests/afterburner_tests.cpp
         src/components/tests/jump_drive_tests.cpp
     )
-    TARGET_INCLUDE_DIRECTORIES(${TEST_NAME} PUBLIC ${VS_INCLUDE_DIRS})
+    TARGET_INCLUDE_DIRECTORIES(${TEST_NAME} SYSTEM PRIVATE ${VSE_TST_INCLUDES})
+    TARGET_INCLUDE_DIRECTORIES(${TEST_NAME} PRIVATE
+            # VS engine headers
+            ${Vega_Strike_SOURCE_DIR}
+            ${Vega_Strike_SOURCE_DIR}/engine
+            ${Vega_Strike_SOURCE_DIR}/engine/src
+            # Library Headers
+            ${Vega_Strike_SOURCE_DIR}/libraries
+            # CMake Artifacts
+            ${Vega_Strike_BINARY_DIR}
+            ${Vega_Strike_BINARY_DIR}/src
+            ${Vega_Strike_BINARY_DIR}/engine
+            ${Vega_Strike_BINARY_DIR}/engine/src
+    )
     SET_TARGET_PROPERTIES(${TEST_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${Vega_Strike_BINARY_DIR}/)
 
-    ADD_LIBRARY(vegastrike-testing
+    #TARGET_COMPILE_FEATURES(${TEST_NAME} PUBLIC cxx_std_11)
+    SET_PROPERTY(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD 14)
+    SET_PROPERTY(TARGET ${TEST_NAME} PROPERTY CXX_STANDARD_REQUIRED TRUE)
+    IF (NEED_LINKING_AGAINST_LIBM)
+        TARGET_LINK_LIBRARIES(${TEST_NAME} m)
+    ENDIF()
+
+    ADD_LIBRARY(vegastrike-testing OBJECT
         ${LIBPYTHON}
         ${LIBVS_LOGGING}
         ${LIBCONFIG}
         ${LIBDAMAGE}
         ${LIBRESOURCE}
         ${LIBCOMPONENT}
-        ${LIBCMD_SOURCES}
-        ${LIBVS_LOGGING}
     )
-    TARGET_INCLUDE_DIRECTORIES(vegastrike-testing PUBLIC ${VS_INCLUDE_DIRS})
+    TARGET_INCLUDE_DIRECTORIES(vegastrike-testing SYSTEM PRIVATE ${VSE_TST_INCLUDES})
+    TARGET_INCLUDE_DIRECTORIES(vegastrike-testing PRIVATE
+            # VS engine headers
+            ${Vega_Strike_SOURCE_DIR}
+            ${Vega_Strike_SOURCE_DIR}/engine
+            ${Vega_Strike_SOURCE_DIR}/engine/src
+            # Library Headers
+            ${Vega_Strike_SOURCE_DIR}/libraries
+            # CMake Artifacts
+            ${Vega_Strike_BINARY_DIR}
+            ${Vega_Strike_BINARY_DIR}/src
+            ${Vega_Strike_BINARY_DIR}/engine
+            ${Vega_Strike_BINARY_DIR}/engine/src
+    )
     TARGET_COMPILE_DEFINITIONS(vegastrike-testing PUBLIC "BOOST_ALL_DYN_LINK" "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>")
+    SET_PROPERTY(TARGET vegastrike-testing PROPERTY CXX_STANDARD 14)
+    SET_PROPERTY(TARGET vegastrike-testing PROPERTY CXX_STANDARD_REQUIRED TRUE)
     SET_PROPERTY(TARGET vegastrike-testing PROPERTY POSITION_INDEPENDENT_CODE TRUE)
     IF (WIN32)
         TARGET_COMPILE_DEFINITIONS(vegastrike-testing PUBLIC BOOST_USE_WINAPI_VERSION=0x0A00)
@@ -1382,14 +1226,19 @@ IF (USE_GTEST)
     ENDIF()
 
     TARGET_LINK_LIBRARIES(
-        ${TEST_NAME}
-        ${Boost_LIBRARIES}
-        ${Python3_LIBRARIES}
-        gtest_main
-        vegastrike-testing
-        Boost::log
-        Boost::log_setup
-        Boost::json
+            ${TEST_NAME}
+            ${OPENAL_LIBRARY}
+            ${Vorbis_LIBRARIES}
+            ${JPEG_LIBRARIES}
+            ${PNG_LIBRARIES}
+            ${Boost_LIBRARIES}
+            ${Python3_LIBRARIES}
+            gtest_main
+            $<TARGET_OBJECTS:vegastrike-testing>
+            vegastrike_cmd
+            Boost::log
+            Boost::log_setup
+            Boost::json
     )
     TARGET_COMPILE_DEFINITIONS(${TEST_NAME} PUBLIC "BOOST_ALL_DYN_LINK" "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>")
     IF (WIN32)

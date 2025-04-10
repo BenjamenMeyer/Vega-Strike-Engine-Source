@@ -24,24 +24,24 @@
 /// Functions for python modules
 ///
 #include "cmd/script/mission.h"
-#include "universe_util.h"
-#include "universe.h"
+#include "src/universe_util.h"
+#include "src/universe.h"
 #include "cmd/collection.h"
-#include "star_system.h"
+#include "src/star_system.h"
 #include <string>
 #include "cmd/music.h"
-#include "audiolib.h"
+#include "src/audiolib.h"
 #include "gfx/animation.h"
-#include "lin_time.h"
-#include "load_mission.h"
-#include "config_xml.h"
-#include "vs_globals.h"
+#include "root_generic/lin_time.h"
+#include "root_generic/load_mission.h"
+#include "src/config_xml.h"
+#include "root_generic/vs_globals.h"
 #include "gfx/particle.h"
 #include "cmd/base.h"
-#include "options.h"
-#include "universe.h"
-#include "savegame.h"
-#include "vs_logging.h"
+#include "root_generic/options.h"
+#include "src/universe.h"
+#include "root_generic/savegame.h"
+#include "src/vs_logging.h"
 
 extern unsigned int AddAnimation(const QVector &pos,
         const float size,
@@ -57,8 +57,6 @@ extern Animation *GetSplashScreen();
 extern const vector<string> &ParseDestinations(const string &value);
 
 using std::string;
-//less to write
-#define activeSys _Universe->activeStarSystem()
 
 void ClientServerSetLightContext(int lightcontext) {
     GFXSetLightContext(lightcontext);
@@ -222,6 +220,3 @@ void sendCustom(int cp, string cmd, string args, string id) {
     receivedCustom(cp, true, cmd, args, id);
 }
 }
-
-#undef activeSys
-

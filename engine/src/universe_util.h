@@ -25,9 +25,9 @@
 /// Headers for python modules
 ///
 #include "cmd/collection.h"
-#include "gfx/vec.h"
+#include "gfx_generic/vec.h"
 #include "cmd/unit_util.h"
-#include "manifest.h"
+#include "resource/manifest.h"
 
 #include <string>
 #include <vector>
@@ -440,7 +440,5 @@ bool isSplashScreenShowing();
 void startMenuInterface(bool firsttime,
         string alert = string());         //If game fails, bring it back to a common starting point.
 }
-
-#undef activeSys
 
 #endif //VEGA_STRIKE_ENGINE_UNIVERSE_UTIL_GENERIC_H

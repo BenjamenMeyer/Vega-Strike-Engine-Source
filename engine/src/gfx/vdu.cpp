@@ -27,28 +27,29 @@
 /// Draws shield, armor, comm strings and animation, messages, manifest,
 /// target info, and objectives
 
-#include "vdu.h"
+#include "gfx/vdu.h"
 #include "cmd/unit_util.h"
-#include "hud.h"
-#include "vs_globals.h"
-#include "cockpit.h"
+#include "gfx/hud.h"
+#include "root_generic/vs_globals.h"
+#include "gfx/cockpit.h"
 #include "cmd/script/mission.h"
 #include "cmd/script/flightgroup.h"
 #include "cmd/script/msgcenter.h"
 #include "cmd/images.h"
 #include "cmd/planet.h"
 #include "cmd/beam.h"
-#include "xml_support.h"
+#include "root_generic/xml_support.h"
 #include "gfx/animation.h"
-#include "galaxy_gen.h"
-#include "universe_util.h"
-#include "vsfilesystem.h"
+#include "root_generic/galaxy_gen.h"
+#include "src/universe_util.h"
+#include "root_generic/vsfilesystem.h"
 #include "cmd/ai/communication.h"
-#include "universe.h"
-#include "mount_size.h"
-#include "weapon_info.h"
+#include "src/universe.h"
+#include "cmd/mount_size.h"
+#include "cmd/weapon_info.h"
 #include "configuration/configuration.h"
 #include "components/ship_functions.h"
+#include "cmd/dock_utils.h"
 
 template<typename T>
 inline T mymin(T a, T b) {
@@ -549,49 +550,6 @@ VSSprite *getNavImage() {
     RETURN_STATIC_SPRITE("nav-hud");
 }
 
-double DistanceTwoTargets(Unit *parent, Unit *target) {
-    double tmp =
-            ((parent->Position() - target->Position()).Magnitude()
-                    - ((target->isUnit() == Vega_UnitType::planet) ? target->rSize() : 0));
-    if (tmp < 0) {
-        return 0;
-    }
-    return tmp;
-}
-
-struct retString128 {
-    char str[128];
-};
-
-retString128 PrettyDistanceString(double distance) {
-    //OVERRUN
-    struct retString128 qr;
-    static float game_speed = XMLSupport::parse_float(vs_config->getVariable("physics", "game_speed", "1"));
-    static bool lie = XMLSupport::parse_bool(vs_config->getVariable("physics", "game_speed_lying", "true"));
-    if (lie) {
-        sprintf(qr.str, "%.2lf", distance / game_speed);
-    } else {
-        if (distance < 20000) {                                   //use meters up to 20,000 m
-            sprintf(qr.str, "%.0lf meters", distance);
-        } else if (distance < 100000) {                             //use kilometers with two decimals up to 100 km
-            sprintf(qr.str, "%.2lf kilometers", distance / 1000);
-        } else if (distance
-                < 299792458) {                          //use kilometers without decimals up to 299792.458 km
-            sprintf(qr.str, "%.0lf kilometers", distance / 1000);
-        } else if (distance < (120 * 299792458.)) {                 //use light seconds up to 120
-            sprintf(qr.str, "%.2lf light seconds", distance / 299792458);
-        } else if (distance < (120 * 60 * 299792458.)) {              //use light minutes up to 120
-            sprintf(qr.str, "%.2lf light minutes", distance / (60 * 299792458.));
-        } else if (distance < (48 * 3600 * 299792458.)) {             //use light hours up to 48
-            sprintf(qr.str, "%.2lf light hours", distance / (3600 * 299792458.));
-        } else if (distance < (365 * 24 * 3600 * 299792458.)) {          //use light days up to 365
-            sprintf(qr.str, "%.2lf light days", distance / (24 * 3600 * 299792458.));
-        } else {                                                    //use light years
-            sprintf(qr.str, "%.2lf lightyears", distance / (365 * 24 * 3600 * 299792458.));
-        }
-    }
-    return qr;
-}
 
 static float OneOfFour(float a, float b, float c, float d) {
     int aa = a != 0 ? 1 : 0;
@@ -632,10 +590,10 @@ static float TwoOfFour(float a, float b, float c, float d) {
 
 void VDU::DrawTarget(GameCockpit *cp, Unit *parent, Unit *target) {
     float x, y, w, h;
-    
+
     GFXEnable(TEXTURE0);
     const bool invert_target_sprite = configuration()->graphics_config.hud.invert_target_sprite;
-    
+
     float armor_up = target->armor.Percent(Armor::front);
     float armor_down = target->armor.Percent(Armor::back);
     float armor_left = target->armor.Percent(Armor::right);
@@ -713,17 +671,9 @@ void VDU::DrawTarget(GameCockpit *cp, Unit *parent, Unit *target) {
             newst += cp->autoMessage + "\n";
         }
         newst += '\n';
-        double dist = DistanceTwoTargets(parent, target);
-        double actual_range = dist;
-        if ((target->isUnit() == Vega_UnitType::planet) && (target->CanDockWithMe(parent, 1) != -1)) {
-            dist -= target->rSize() * UniverseUtil::getPlanetRadiusPercent();
-            if (dist < 0) {
-                newst += string("Docking: Ready");
-            } else if (dist < target->rSize()) {
-                newst += string("Docking: ") + string(PrettyDistanceString(dist).str);
-            }
-        }
-        newst += string("\nRange: ") + string(PrettyDistanceString(actual_range).str);
+        double actual_range = DistanceTwoTargets(parent, target);
+        newst += GetDockingText(parent, target, actual_range);
+        newst += string("\nRange: ") + PrettyDistanceString(actual_range);
         const float background_alpha = configuration()->graphics_config.hud.text_background_alpha;
         GFXColor tpbg = tp->bgcol;
         bool automatte = (0 == tpbg.a);
@@ -743,9 +693,9 @@ void VDU::DrawTarget(GameCockpit *cp, Unit *parent, Unit *target) {
         static bool builtin_shields =
                 XMLSupport::parse_bool(vs_config->getVariable("graphics", "vdu_builtin_shields", "false"));
         if (builtin_shields) {
-            DrawShield(target->shield.Percent(Shield::front), 
-            target->shield.Percent(Shield::right), 
-            target->shield.Percent(Shield::left), 
+            DrawShield(target->shield.Percent(Shield::front),
+            target->shield.Percent(Shield::right),
+            target->shield.Percent(Shield::left),
             target->shield.Percent(Shield::back), x, y, w, h, false,
                     GFXColor(ishieldcolor[0], ishieldcolor[1], ishieldcolor[2], ishieldcolor[3]),
                     GFXColor(mshieldcolor[0], mshieldcolor[1], mshieldcolor[2], mshieldcolor[3]),
@@ -934,10 +884,7 @@ void VDU::DrawNav(GameCockpit *cp, Unit *you, Unit *targ, const Vector &nav) {
                     + FactionUtil::GetFactionName(faction)
                     + ")\n\n#ff0000Target:\n  #ffff00" + (targ ? getUnitNameAndFgNoBase(targ) : std::string("Nothing"))
                     + "\n\n#ff0000Range: #ffff00"
-                    + std::string(PrettyDistanceString(((you && targ) ? DistanceTwoTargets(you,
-                            targ) : 0.0))
-                            .
-                                    str);
+                    + PrettyDistanceString(((you && targ) ? DistanceTwoTargets(you, targ) : 0.0));
     static float auto_message_lim =
             XMLSupport::parse_float(vs_config->getVariable("graphics", "auto_message_time_lim", "5"));
     float delautotime = UniverseUtil::GetGameTime() - cp->autoMessageTime;
@@ -1317,11 +1264,11 @@ void VDU::DrawDamage(Unit *parent) {
     if (parent->pImage != nullptr) {
         // Integrated systems with percent working values
         // TODO: get labels from config
-        REPORTITEM( parent->ship_functions.Percent(Function::life_support), 1.0, print_percent_working, "Life Support"); 
-        REPORTITEM( parent->ship_functions.Percent(Function::fire_control), 1.0, print_percent_working, "Fire Control"); 
-        REPORTITEM( parent->ftl_drive.PercentOperational(), 1.0, print_percent_working, "SPEC Drive"); 
-        REPORTITEM( parent->ship_functions.Percent(Function::communications), 1.0, print_percent_working, "Comm"); 
-        
+        REPORTITEM( parent->ship_functions.Percent(Function::life_support), 1.0, print_percent_working, "Life Support");
+        REPORTITEM( parent->ship_functions.Percent(Function::fire_control), 1.0, print_percent_working, "Fire Control");
+        REPORTITEM( parent->ftl_drive.PercentOperational(), 1.0, print_percent_working, "SPEC Drive");
+        REPORTITEM( parent->ship_functions.Percent(Function::communications), 1.0, print_percent_working, "Comm");
+
         // Integrated system with boolean damage flags
         REPORTINTEGRATEDFLAG(Unit::LIMITS_DAMAGED, "damage.names.limits_name", "Thrusters");
         REPORTINTEGRATEDFLAG(Unit::SHIELD_DAMAGED, "damage.names.shield_name", ""); // default invisible, is an upgrade
@@ -1402,9 +1349,9 @@ void VDU::DrawStarSystemAgain(float x, float y, float w, float h, VIEWSTYLE view
             st[i] = '\n';
         }
         st[i] = '\0';
-        struct retString128 qr = PrettyDistanceString(DistanceTwoTargets(parent, target));
+        std::string qr = PrettyDistanceString(DistanceTwoTargets(parent, target));
         strcat(st, "Range: ");
-        strcat(st, qr.str);
+        strcat(st, qr.c_str());
 //        GFXColor tpbg = tp->bgcol;
 //        bool automatte = (0 == tpbg.a);
         if (automatte) {

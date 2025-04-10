@@ -27,17 +27,17 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include "gfxlib.h"
+#include "src/gfxlib.h"
 #include <string>
-#include "endianness.h"
-#include "hashtable.h"
-#include "vsfilesystem.h"
-#include "vsimage.h"
-#include "vs_globals.h"
-#include "in_kb.h"
-#include "main_loop.h"
-#include "aux_texture.h"
-#include "configxml.h"
+#include "src/endianness.h"
+#include "src/hashtable.h"
+#include "root_generic/vsfilesystem.h"
+#include "gfx/vsimage.h"
+#include "root_generic/vs_globals.h"
+#include "src/in_kb.h"
+#include "src/main_loop.h"
+#include "gfx/aux_texture.h"
+#include "root_generic/configxml.h"
 
 using std::string;
 using namespace VSFileSystem;
@@ -541,7 +541,7 @@ void Texture::Load(const char *FileNameRGB,
 }
 
 Texture::~Texture() {
-    if (original == NULL) {
+    if (original == nullptr) {
         /**DEPRECATED
          *     if(data != NULL)
          *     {
@@ -551,14 +551,15 @@ Texture::~Texture() {
          *     }
          */
         UnBind();
-        if (palette != NULL) {
+        if (palette != nullptr) {
             free(palette);
-            palette = NULL;
+            palette = nullptr;
         }
     } else {
         original->refcount--;
         if (original->refcount == 0) {
             delete original;
+            original = nullptr;
         }
     }
 }

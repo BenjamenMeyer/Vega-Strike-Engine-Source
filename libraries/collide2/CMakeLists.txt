@@ -17,75 +17,126 @@
 # You should have received a copy of the GNU General Public License
 # along with Vega Strike. If not, see <https://www.gnu.org/licenses/>.
 
-MESSAGE("PROCESSING DIRECTORY: ${CMAKE_CURRENT_SOURCE_DIR}")
-
-LIST(APPEND
-    OPCOLLIDE_INCLUDES
-    # collide2 headers
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    # VS engine headers
-    #${CMAKE_SOURCE_DIR}/engine
-    ${CMAKE_SOURCE_DIR}/engine/src
-    ${CMAKE_SOURCE_DIR}/engine/src/cmd
-    ${CMAKE_SOURCE_DIR}/engine/src/components
-    ${CMAKE_SOURCE_DIR}/engine/src/damage
-    ${CMAKE_SOURCE_DIR}/engine/src/resource
-    ${CMAKE_SOURCE_DIR}/engine/src/python/base_computer
-    ${CMAKE_SOURCE_DIR}/engine/src/python/config
-    # CMake Artifacts
-    ${Vega_Strike_BINARY_DIR}
-    ${Vega_Strike_BINARY_DIR}/engine
-    ${Vega_Strike_BINARY_DIR}/src
-)
-MESSAGE("OpCollide Includes: ${OPCOLLIDE_INCLUDES}")
+MESSAGE(STATUS "PROCESSING DIRECTORY: ${CMAKE_CURRENT_SOURCE_DIR}")
 
 ADD_LIBRARY(vegastrike-OPcollide STATIC
-    Ice/IceAABB.cpp
-    Ice/IceContainer.cpp
-    Ice/IceHPoint.cpp
-    Ice/IceIndexedTriangle.cpp
-    Ice/IceMatrix3x3.cpp
-    Ice/IceMatrix4x4.cpp
-    Ice/IceOBB.cpp
-    Ice/IcePlane.cpp
-    Ice/IcePoint.cpp
-    Ice/IceRandom.cpp
-    Ice/IceRay.cpp
-    Ice/IceRevisitedRadix.cpp
-    Ice/IceSegment.cpp
-    Ice/IceTriangle.cpp
-    Ice/IceUtils.cpp
-    csgeom2/opbox.cpp
-    csgeom2/opmatrix3.cpp
-    csgeom2/opvector3.cpp
-    OPC_AABBCollider.cpp
-    OPC_AABBTree.cpp
-    OPC_BaseModel.cpp
-    OPC_BoxPruning.cpp
-    OPC_Collider.cpp
-    OPC_HybridModel.cpp
-    OPC_LSSCollider.cpp
-    OPC_MeshInterface.cpp
-    OPC_Model.cpp
-    OPC_OBBCollider.cpp
-    OPC_OptimizedTree.cpp
-    OPC_Picking.cpp
-    OPC_PlanesCollider.cpp
-    OPC_RayCollider.cpp
-    OPC_SphereCollider.cpp
-    OPC_SweepAndPrune.cpp
-    OPC_TreeBuilders.cpp
-    OPC_TreeCollider.cpp
-    OPC_VolumeCollider.cpp
-    CSopcodecollider.cpp
+        Ice/IceAABB.cpp
+        Ice/IceAABB.h
+        Ice/IceAxes.h
+        Ice/IceBoundingSphere.h
+        Ice/IceContainer.cpp
+        Ice/IceContainer.h
+        Ice/IceFPU.h
+        Ice/IceHPoint.cpp
+        Ice/IceHPoint.h
+        Ice/IceIndexedTriangle.cpp
+        Ice/IceIndexedTriangle.h
+        Ice/IceLSS.h
+        Ice/IceMatrix3x3.cpp
+        Ice/IceMatrix3x3.h
+        Ice/IceMatrix4x4.cpp
+        Ice/IceMatrix4x4.h
+        Ice/IceMemoryMacros.h
+        Ice/IceOBB.cpp
+        Ice/IceOBB.h
+        Ice/IcePairs.h
+        Ice/IcePlane.cpp
+        Ice/IcePlane.h
+        Ice/IcePoint.cpp
+        Ice/IcePoint.h
+        Ice/IcePreprocessor.h
+        Ice/IceRandom.cpp
+        Ice/IceRandom.h
+        Ice/IceRay.cpp
+        Ice/IceRay.h
+        Ice/IceRevisitedRadix.cpp
+        Ice/IceRevisitedRadix.h
+        Ice/IceSegment.cpp
+        Ice/IceSegment.h
+        Ice/IceTriangle.cpp
+        Ice/IceTriangle.h
+        Ice/IceTrilist.h
+        Ice/IceTypes.h
+        Ice/IceUtils.cpp
+        Ice/IceUtils.h
+        csgeom2/opmath.h
+        csgeom2/optransfrm.h
+        csgeom2/opbox.cpp
+        csgeom2/opbox.h
+        csgeom2/opmatrix3.cpp
+        csgeom2/opmatrix3.h
+        csgeom2/opvector3.cpp
+        csgeom2/opvector3.h
+        basecollider.h
+        OPC_Common.h
+        OPC_IceHook.h
+        OPC_BoxBoxOverlap.h
+        OPC_LSSAABBOverlap.h
+        OPC_LSSTriOverlap.h
+        OPC_PlanesAABBOverlap.h
+        OPC_PlanesTriOverlap.h
+        OPC_RayAABBOverlap.h
+        OPC_RayTriOverlap.h
+        OPC_SphereAABBOverlap.h
+        OPC_SphereTriOverlap.h
+        OPC_TriBoxOverlap.h
+        OPC_TriTriOverlap.h
+        OPC_AABBCollider.cpp
+        OPC_AABBCollider.h
+        OPC_AABBTree.cpp
+        OPC_AABBTree.h
+        OPC_BaseModel.cpp
+        OPC_BaseModel.h
+        OPC_BoxPruning.cpp
+        OPC_BoxPruning.h
+        OPC_Collider.cpp
+        OPC_Collider.h
+        OPC_HybridModel.cpp
+        OPC_HybridModel.h
+        OPC_LSSCollider.cpp
+        OPC_LSSCollider.h
+        OPC_MeshInterface.cpp
+        OPC_MeshInterface.h
+        OPC_Model.cpp
+        OPC_Model.h
+        OPC_OBBCollider.cpp
+        OPC_OBBCollider.h
+        OPC_OptimizedTree.cpp
+        OPC_OptimizedTree.h
+        OPC_Picking.cpp
+        OPC_Picking.h
+        OPC_PlanesCollider.cpp
+        OPC_PlanesCollider.h
+        OPC_RayCollider.cpp
+        OPC_RayCollider.h
+        OPC_SphereCollider.cpp
+        OPC_SphereCollider.h
+        OPC_SweepAndPrune.cpp
+        OPC_SweepAndPrune.h
+        OPC_TreeBuilders.cpp
+        OPC_TreeBuilders.h
+        OPC_TreeCollider.cpp
+        OPC_TreeCollider.h
+        OPC_VolumeCollider.cpp
+        OPC_VolumeCollider.h
+        CSopcodecollider.cpp
+        CSopcodecollider.h
+        Opcode.h
+        opcodealgorithms.h
+        opcodeextern.h
+        opcodegarray.h
+        opcodeqint.h
+        opcodeqsqrt.h
+        opcodesysdef.h
+        opcodetypes.h
+        segmentcell.h
 )
-TARGET_INCLUDE_DIRECTORIES(vegastrike-OPcollide PUBLIC ${OPCOLLIDE_INCLUDES})
 
-TARGET_COMPILE_FEATURES(vegastrike-OPcollide PUBLIC cxx_std_11)
+#TARGET_COMPILE_FEATURES(vegastrike-OPcollide PUBLIC cxx_std_11)
+SET_PROPERTY(TARGET vegastrike-OPcollide PROPERTY CXX_STANDARD 14)
+SET_PROPERTY(TARGET vegastrike-OPcollide PROPERTY CXX_STANDARD_REQUIRED TRUE)
+SET_PROPERTY(TARGET vegastrike-OPcollide PROPERTY CXX_EXTENSIONS ON)
 SET_PROPERTY(TARGET vegastrike-OPcollide PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-IF (NEED_LINKING_AGAINST_LIBM)
-    TARGET_LINK_LIBRARIES(vegastrike-OPcollide m)
-ENDIF()
 
 TARGET_COMPILE_DEFINITIONS(vegastrike-OPcollide PUBLIC "BOOST_ALL_DYN_LINK" "$<$<CONFIG:Debug>:BOOST_DEBUG_PYTHON>")
 IF (WIN32)
@@ -94,3 +145,24 @@ IF (WIN32)
     TARGET_COMPILE_DEFINITIONS(vegastrike-OPcollide PUBLIC WINVER=0x0A00)
     TARGET_COMPILE_DEFINITIONS(vegastrike-OPcollide PUBLIC "$<$<CONFIG:Debug>:Py_DEBUG>")
 ENDIF()
+
+TARGET_INCLUDE_DIRECTORIES(vegastrike-OPcollide SYSTEM PRIVATE ${TST_INCLUDES})
+TARGET_INCLUDE_DIRECTORIES(vegastrike-OPcollide PRIVATE
+        # VS engine headers
+        ${Vega_Strike_SOURCE_DIR}
+        ${Vega_Strike_SOURCE_DIR}/engine
+        ${Vega_Strike_SOURCE_DIR}/engine/src
+        # Library Headers
+        ${Vega_Strike_SOURCE_DIR}/libraries
+        # CMake Artifacts
+        ${Vega_Strike_BINARY_DIR}
+        ${Vega_Strike_BINARY_DIR}/src
+        ${Vega_Strike_BINARY_DIR}/engine
+        ${Vega_Strike_BINARY_DIR}/engine/src
+)
+
+IF (NEED_LINKING_AGAINST_LIBM)
+    TARGET_LINK_LIBRARIES(vegastrike-OPcollide PRIVATE m)
+ENDIF()
+TARGET_LINK_LIBRARIES(vegastrike-OPcollide PRIVATE ${TST_LIBS} GLUT::GLUT)
+TARGET_LINK_LIBRARIES(vegastrike-OPcollide PUBLIC vegastrike_gfx_generic)

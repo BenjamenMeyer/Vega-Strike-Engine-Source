@@ -44,13 +44,13 @@
 
 #include "gl_globals.h"
 #include "winsys.h"
-#include "vs_globals.h"
-#include "xml_support.h"
-#include "config_xml.h"
-#include "vs_globals.h"
-#include "vs_logging.h"
-#include "options.h"
-#include "vs_exit.h"
+#include "root_generic/vs_globals.h"
+#include "root_generic/xml_support.h"
+#include "src/config_xml.h"
+#include "root_generic/vs_globals.h"
+#include "src/vs_logging.h"
+#include "root_generic/options.h"
+#include "src/vs_exit.h"
 #include "configuration/configuration.h"
 
 #include "SDL2/SDL_video.h"
@@ -259,10 +259,10 @@ static bool setup_sdl_video_mode(int *argc, char **argv) {
     } else {
         window = SDL_CreateWindow("Vega Strike",
                                 SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen_number),
-                                SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen_number), 
+                                SDL_WINDOWPOS_UNDEFINED_DISPLAY(screen_number),
                                 0, 0, video_flags);
     }
-    
+
 
     if(!window) {
         VS_LOG_FLUSH_EXIT(fatal, "No window", 1);
@@ -363,7 +363,12 @@ void winsys_init(int *argc, char **argv, char const *window_title, char const *i
     keepRunning = true;
 
     //SDL_INIT_AUDIO|
-    Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_JOYSTICK;
+#if defined(NO_SDL_JOYSTICK)
+    constexpr Uint32 sdl_flags = SDL_INIT_VIDEO;
+#else
+    constexpr Uint32 sdl_flags = SDL_INIT_VIDEO | SDL_INIT_JOYSTICK;
+#endif
+
     g_game.x_resolution = game_options()->x_resolution;
     g_game.y_resolution = game_options()->y_resolution;
     gl_options.fullscreen = game_options()->fullscreen;
